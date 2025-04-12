@@ -40,10 +40,44 @@
 
     <!-- Loading Screen -->
     <div id="loadingScreen" class="loading fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white p-8 rounded-lg shadow-xl text-center">
+        <div class="bg-white p-8 rounded-lg shadow-xl text-center max-w-lg">
             <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
             <p class="mt-4 text-lg font-semibold text-gray-700">Generating AI Analysis...</p>
-            <p class="mt-2 text-sm text-gray-500">Please wait while we analyze the market data</p>
+            <div class="mt-4 space-y-2 text-left">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 mr-2">
+                        <svg class="w-6 h-6 text-blue-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <p class="text-sm text-gray-600">Analyzing market trends and momentum...</p>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-6 h-6 mr-2">
+                        <svg class="w-6 h-6 text-blue-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                    </div>
+                    <p class="text-sm text-gray-600">Processing technical indicators...</p>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-6 h-6 mr-2">
+                        <svg class="w-6 h-6 text-blue-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <p class="text-sm text-gray-600">Calculating support and resistance levels...</p>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-6 h-6 mr-2">
+                        <svg class="w-6 h-6 text-blue-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                    </div>
+                    <p class="text-sm text-gray-600">Generating price forecasts...</p>
+                </div>
+            </div>
+            <p class="mt-4 text-sm text-gray-500">Please wait while our AI processes comprehensive market data</p>
         </div>
     </div>
 
@@ -116,7 +150,9 @@
                 `${pair} | ${timeframe} Timeframe | Generated on ${new Date().toLocaleString()}`;
 
             if (analysisData) {
-                updateReport(analysisData);
+                // Convert old data structure to new format if needed
+                const formattedData = formatAnalysisData(analysisData);
+                updateReport(formattedData);
             } else {
                 document.getElementById('loadingScreen').classList.add('active');
                 fetch('/api/analyze', {
@@ -128,7 +164,8 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    updateReport(data);
+                    const formattedData = formatAnalysisData(data);
+                    updateReport(formattedData);
                     document.getElementById('loadingScreen').classList.remove('active');
                 })
                 .catch(error => {
@@ -139,41 +176,180 @@
             }
         });
 
+        // Helper function to ensure data compatibility
+        function formatAnalysisData(data) {
+            // Check if data is in old format
+            if (data.trend && !data.market_analysis) {
+                return {
+                    pair: data.pair,
+                    timeframe: data.timeframe,
+                    timestamp: data.timestamp,
+                    market_analysis: {
+                        trend: {
+                            direction: data.trend,
+                            strength: data.confidence,
+                            description: `${data.trend.charAt(0).toUpperCase() + data.trend.slice(1)} trend with ${data.confidence}% confidence`
+                        },
+                        momentum: {
+                            direction: data.trend === 'bullish' ? 'increasing' : 'decreasing',
+                            strength: data.confidence
+                        },
+                        volatility: {
+                            level: data.confidence > 80 ? 'high' : data.confidence > 50 ? 'medium' : 'low',
+                            value: (data.confidence / 20).toFixed(2)
+                        }
+                    },
+                    support_resistance: {
+                        support_levels: [data.support],
+                        resistance_levels: [data.resistance],
+                        breakout_potential: {
+                            probability: data.confidence,
+                            direction: data.trend === 'bullish' ? 'upward' : 'downward',
+                            key_level: data.trend === 'bullish' ? data.resistance : data.support
+                        }
+                    },
+                    technical_indicators: data.indicators || [],
+                    price_action: {
+                        patterns: {
+                            current_pattern: 'None detected',
+                            completion: 0,
+                            reliability: 0
+                        },
+                        key_levels: {
+                            psychological_levels: [],
+                            pivot_points: {
+                                r1: data.resistance,
+                                s1: data.support
+                            }
+                        },
+                        market_structure: {
+                            higher_timeframe_trend: data.trend,
+                            market_phase: 'analysis',
+                            swing_points: {
+                                recent_high: data.resistance,
+                                recent_low: data.support
+                            }
+                        }
+                    },
+                    risk_analysis: {
+                        risk_level: {
+                            level: data.confidence > 80 ? 'low' : data.confidence > 50 ? 'medium' : 'high',
+                            factors: ['market volatility', 'trend strength']
+                        },
+                        stop_loss_suggestions: {
+                            conservative: (parseFloat(data.support) * 0.99).toFixed(4),
+                            moderate: (parseFloat(data.support) * 0.98).toFixed(4),
+                            aggressive: (parseFloat(data.support) * 0.97).toFixed(4)
+                        },
+                        position_sizing: {
+                            suggested_size: 1,
+                            risk_percentage: 2
+                        }
+                    },
+                    market_sentiment: {
+                        overall: {
+                            value: data.confidence,
+                            interpretation: data.trend === 'bullish' ? 'bullish' : 'bearish'
+                        },
+                        institutional: {
+                            commitment: data.trend === 'bullish' ? 'increasing' : 'decreasing',
+                            large_orders: data.confidence
+                        },
+                        retail: {
+                            sentiment: data.trend,
+                            strength: data.confidence
+                        }
+                    },
+                    forecast: {
+                        short_term: {
+                            direction: data.trend === 'bullish' ? 'upward' : 'downward',
+                            target: data.trend === 'bullish' ? data.resistance : data.support,
+                            timeframe: '1-3 days'
+                        },
+                        medium_term: {
+                            direction: data.trend === 'bullish' ? 'upward' : 'downward',
+                            target: data.trend === 'bullish' ? 
+                                (parseFloat(data.resistance) * 1.02).toFixed(4) : 
+                                (parseFloat(data.support) * 0.98).toFixed(4),
+                            timeframe: '1-2 weeks'
+                        },
+                        confidence_score: data.confidence
+                    }
+                };
+            }
+            return data; // Return as-is if already in new format
+        }
+
         function updateReport(analysis) {
             // Update market overview
             document.getElementById('marketOverview').innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Overall Trend</p>
-                        <p class="mt-1 text-lg font-semibold ${analysis.trend === 'bullish' ? 'text-green-600' : 'text-red-600'}">
-                            ${analysis.trend.charAt(0).toUpperCase() + analysis.trend.slice(1)}
-                        </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white rounded-lg p-4 shadow">
+                        <h3 class="text-lg font-medium text-gray-900">Trend Analysis</h3>
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-500">Direction</p>
+                            <p class="mt-1 text-lg font-semibold ${analysis.market_analysis.trend.direction === 'bullish' ? 'text-green-600' : 'text-red-600'}">
+                                ${analysis.market_analysis.trend.direction.toUpperCase()}
+                            </p>
+                            <p class="mt-2 text-sm text-gray-500">Strength</p>
+                            <p class="mt-1 font-medium text-blue-600">${analysis.market_analysis.trend.strength}%</p>
+                            <p class="mt-2 text-sm text-gray-600">${analysis.market_analysis.trend.description}</p>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">AI Confidence</p>
-                        <p class="mt-1 text-lg font-semibold text-blue-600">${analysis.confidence}%</p>
+                    <div class="bg-white rounded-lg p-4 shadow">
+                        <h3 class="text-lg font-medium text-gray-900">Market Momentum</h3>
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-500">Direction</p>
+                            <p class="mt-1 font-medium text-blue-600">${analysis.market_analysis.momentum.direction}</p>
+                            <p class="mt-2 text-sm text-gray-500">Strength</p>
+                            <p class="mt-1 font-medium text-blue-600">${analysis.market_analysis.momentum.strength}%</p>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Support Level</p>
-                        <p class="mt-1 text-lg font-semibold text-gray-900">${analysis.support}</p>
+                    <div class="bg-white rounded-lg p-4 shadow">
+                        <h3 class="text-lg font-medium text-gray-900">Volatility</h3>
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-500">Level</p>
+                            <p class="mt-1 font-medium text-blue-600">${analysis.market_analysis.volatility.level.toUpperCase()}</p>
+                            <p class="mt-2 text-sm text-gray-500">Value</p>
+                            <p class="mt-1 font-medium text-blue-600">${analysis.market_analysis.volatility.value}</p>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Resistance Level</p>
-                        <p class="mt-1 text-lg font-semibold text-gray-900">${analysis.resistance}</p>
+                    <div class="bg-white rounded-lg p-4 shadow">
+                        <h3 class="text-lg font-medium text-gray-900">Market Sentiment</h3>
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-500">Overall</p>
+                            <p class="mt-1 font-medium text-blue-600">${analysis.market_sentiment.overall.interpretation}</p>
+                            <p class="mt-2 text-sm text-gray-500">Strength</p>
+                            <p class="mt-1 font-medium text-blue-600">${analysis.market_sentiment.overall.value}%</p>
+                        </div>
                     </div>
                 </div>
             `;
 
             // Update technical analysis
-            const indicatorAnalysis = analysis.indicators.map(ind => `
-                <div class="bg-gray-50 rounded-lg p-4">
+            const indicatorAnalysis = analysis.technical_indicators.map(ind => `
+                <div class="bg-white rounded-lg p-4 shadow">
                     <h3 class="text-lg font-medium text-gray-900">${ind.name}</h3>
-                    <p class="mt-2 text-sm text-gray-500">Signal</p>
-                    <p class="mt-1 font-medium ${ind.signal === 'buy' ? 'text-green-600' : 'text-red-600'}">
-                        ${ind.signal.toUpperCase()}
-                    </p>
-                    <p class="mt-2 text-sm text-gray-500">Strength</p>
-                    <p class="mt-1 font-medium text-blue-600">${ind.strength}%</p>
+                    <div class="mt-2 space-y-2">
+                        <div>
+                            <p class="text-sm text-gray-500">Signal</p>
+                            <p class="mt-1 font-medium ${ind.signal === 'buy' ? 'text-green-600' : 'text-red-600'}">
+                                ${ind.signal.toUpperCase()}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Strength</p>
+                            <p class="mt-1 font-medium text-blue-600">${ind.strength}%</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Reliability</p>
+                            <p class="mt-1 font-medium text-blue-600">${ind.reliability}%</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Status</p>
+                            <p class="mt-1 font-medium text-blue-600">${ind.confirmation}</p>
+                        </div>
+                    </div>
                 </div>
             `).join('');
 
@@ -181,33 +357,98 @@
 
             // Update AI predictions
             document.getElementById('aiPredictions').innerHTML = `
-                <div class="flex items-center justify-between">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <h3 class="text-lg font-medium text-gray-900">Price Movement Prediction</h3>
-                        <p class="mt-2 text-sm text-gray-500">Based on current market conditions and technical indicators</p>
+                        <h3 class="text-lg font-medium text-gray-900">Short-term Forecast</h3>
+                        <div class="mt-4 space-y-2">
+                            <p class="text-sm text-gray-500">Direction</p>
+                            <p class="text-lg font-semibold ${analysis.forecast.short_term.direction === 'upward' ? 'text-green-600' : 'text-red-600'}">
+                                ${analysis.forecast.short_term.direction.toUpperCase()}
+                            </p>
+                            <p class="text-sm text-gray-500">Target Price</p>
+                            <p class="text-lg font-semibold text-blue-600">${analysis.forecast.short_term.target}</p>
+                            <p class="text-sm text-gray-500">Timeframe</p>
+                            <p class="text-sm text-gray-600">${analysis.forecast.short_term.timeframe}</p>
+                        </div>
                     </div>
-                    <div class="text-right">
-                        <p class="text-2xl font-bold ${analysis.trend === 'bullish' ? 'text-green-600' : 'text-red-600'}">
-                            ${analysis.trend.charAt(0).toUpperCase() + analysis.trend.slice(1)}
-                        </p>
-                        <p class="mt-1 text-sm text-gray-500">Confidence: ${analysis.confidence}%</p>
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">Medium-term Forecast</h3>
+                        <div class="mt-4 space-y-2">
+                            <p class="text-sm text-gray-500">Direction</p>
+                            <p class="text-lg font-semibold ${analysis.forecast.medium_term.direction === 'upward' ? 'text-green-600' : 'text-red-600'}">
+                                ${analysis.forecast.medium_term.direction.toUpperCase()}
+                            </p>
+                            <p class="text-sm text-gray-500">Target Price</p>
+                            <p class="text-lg font-semibold text-blue-600">${analysis.forecast.medium_term.target}</p>
+                            <p class="text-sm text-gray-500">Timeframe</p>
+                            <p class="text-sm text-gray-600">${analysis.forecast.medium_term.timeframe}</p>
+                        </div>
                     </div>
+                </div>
+                <div class="mt-6 text-center">
+                    <p class="text-sm text-gray-500">AI Confidence Score</p>
+                    <p class="text-2xl font-bold text-blue-600">${analysis.forecast.confidence_score}%</p>
                 </div>
             `;
 
             // Update recommendations
             document.getElementById('recommendations').innerHTML = `
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Entry Points</h3>
-                    <p class="text-sm text-gray-600">Consider entry positions near support level at ${analysis.support}</p>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Exit Points</h3>
-                    <p class="text-sm text-gray-600">Consider taking profits near resistance level at ${analysis.resistance}</p>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Risk Management</h3>
-                    <p class="text-sm text-gray-600">Set stop loss 20-30 pips below entry point for long positions</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-lg p-6 shadow">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Entry & Exit Points</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Support Levels</p>
+                                <ul class="mt-2 space-y-1">
+                                    ${analysis.support_resistance.support_levels.map(level => 
+                                        `<li class="text-sm text-gray-600">${level}</li>`
+                                    ).join('')}
+                                </ul>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Resistance Levels</p>
+                                <ul class="mt-2 space-y-1">
+                                    ${analysis.support_resistance.resistance_levels.map(level => 
+                                        `<li class="text-sm text-gray-600">${level}</li>`
+                                    ).join('')}
+                                </ul>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Breakout Potential</p>
+                                <p class="mt-1 text-sm text-gray-600">
+                                    ${analysis.support_resistance.breakout_potential.probability}% chance of 
+                                    ${analysis.support_resistance.breakout_potential.direction} breakout at 
+                                    ${analysis.support_resistance.breakout_potential.key_level}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg p-6 shadow">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Risk Management</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Risk Level</p>
+                                <p class="mt-1 text-sm text-gray-600">
+                                    ${analysis.risk_analysis.risk_level.level.toUpperCase()} - Based on ${analysis.risk_analysis.risk_level.factors.join(', ')}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Suggested Stop Loss Levels</p>
+                                <ul class="mt-2 space-y-1">
+                                    <li class="text-sm text-gray-600">Conservative: ${analysis.risk_analysis.stop_loss_suggestions.conservative}</li>
+                                    <li class="text-sm text-gray-600">Moderate: ${analysis.risk_analysis.stop_loss_suggestions.moderate}</li>
+                                    <li class="text-sm text-gray-600">Aggressive: ${analysis.risk_analysis.stop_loss_suggestions.aggressive}</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Position Sizing</p>
+                                <p class="mt-1 text-sm text-gray-600">
+                                    Suggested size: ${analysis.risk_analysis.position_sizing.suggested_size} lots
+                                    (${analysis.risk_analysis.position_sizing.risk_percentage}% account risk)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
         }
