@@ -14,14 +14,19 @@
             font-family: 'Inter', sans-serif;
         }
         
-        /* Hide all instrument groups by default */
-        .instrument-group {
-            display: none;
+        /* Style for optgroups */
+        optgroup {
+            font-weight: 600;
+            color: #374151;
         }
         
-        /* Show only the active instrument group */
-        .instrument-group.active {
-            display: block;
+        /* Style for select options */
+        select optgroup {
+            font-weight: 600;
+            color: #374151;
+        }
+        select option:disabled {
+            display: none;
         }
     </style>
 </head>
@@ -61,7 +66,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Symbol</label>
-                        <select id="currencyPair" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        <select id="currencyPair" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md" onchange="updateChart(); return false;">
                             <!-- Forex Pairs -->
                             <optgroup label="Forex" class="instrument-group forex">
                                 <option value="EURUSD">EUR/USD</option>
@@ -193,9 +198,12 @@
                 "toolbar_bg": "#f1f3f6",
                 "enable_publishing": false,
                 "hide_side_toolbar": false,
-                "allow_symbol_change": true,
+                "allow_symbol_change": false,
+                "hide_top_toolbar": false,
+                "save_image": false,
                 "container_id": "tradingview_chart",
-                "studies": getSelectedIndicators()
+                "studies": getSelectedIndicators(),
+                "disabled_features": ["header_symbol_search", "symbol_search_hot_key"]
             });
         }
 
@@ -203,33 +211,29 @@
         function updateSymbolOptions() {
             const instrumentType = document.getElementById('instrumentType').value;
             const symbolSelect = document.getElementById('currencyPair');
-            const groups = symbolSelect.getElementsByTagName('optgroup');
             
-            // Remove active class from all groups
-            Array.from(groups).forEach(group => {
-                group.classList.remove('active');
-                Array.from(group.getElementsByTagName('option')).forEach(option => {
-                    option.disabled = true;
-                });
+            console.log('Updating symbols for instrument type:', instrumentType);
+            
+            // Disable all options first
+            Array.from(symbolSelect.options).forEach(option => {
+                option.disabled = true;
             });
             
-            // Add active class to selected group and enable its options
-            const activeGroup = Array.from(groups).find(group => group.classList.contains(instrumentType));
-            if (activeGroup) {
-                activeGroup.classList.add('active');
-                Array.from(activeGroup.getElementsByTagName('option')).forEach(option => {
-                    option.disabled = false;
-                });
-                
-                // Select first option in the active group
-                if (activeGroup.querySelector('option')) {
-                    symbolSelect.value = activeGroup.querySelector('option').value;
-                }
+            // Enable options for selected instrument type
+            const relevantOptions = symbolSelect.querySelectorAll(`optgroup.instrument-group.${instrumentType} option`);
+            relevantOptions.forEach(option => {
+                option.disabled = false;
+            });
+            
+            // Select first enabled option
+            const firstEnabledOption = relevantOptions[0];
+            if (firstEnabledOption) {
+                symbolSelect.value = firstEnabledOption.value;
+                console.log('Selected symbol:', firstEnabledOption.value);
+                updateChart();
             }
-
-            // Update chart with new selection
-            updateChart();
         }
+
 
         function updateChart() {
             const pair = document.getElementById('currencyPair').value;
@@ -252,23 +256,44 @@
             updateSymbolOptions();
             // Initialize chart
             initTradingViewWidget();
-        });
 
-        // Update chart when instrument type, symbol, or timeframe changes
-        document.getElementById('instrumentType').addEventListener('change', updateSymbolOptions);
-        document.getElementById('currencyPair').addEventListener('change', updateChart);
-        document.getElementById('timeframe').addEventListener('change', updateChart);
-        
-        // Update chart when indicators are changed
-        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            checkbox.addEventListener('change', updateChart);
-        });
+            // Prevent TradingView's default symbol search
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.tv-chart-container')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+            }, true);
 
-        function updateChart() {
-            const pair = document.getElementById('currencyPair').value;
-            const timeframe = document.getElementById('timeframe').value;
-            initTradingViewWidget(pair, timeframe);
-        }
+            // Add event listeners with proper event handling
+            const instrumentTypeSelect = document.getElementById('instrumentType');
+            instrumentTypeSelect.addEventListener('change', function(e) {
+                const selectedValue = this.value;
+                console.log('Instrument type changed to:', selectedValue);
+                updateSymbolOptions();
+            });
+
+            const symbolSelect = document.getElementById('currencyPair');
+            symbolSelect.addEventListener('change', function(e) {
+                console.log('Symbol changed to:', this.value);
+                updateChart();
+            });
+
+            const timeframeSelect = document.getElementById('timeframe');
+            timeframeSelect.addEventListener('change', function(e) {
+                console.log('Timeframe changed to:', this.value);
+                updateChart();
+            });
+            
+            // Update chart when indicators are changed
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function(e) {
+                    console.log('Indicator changed:', this.id, 'checked:', this.checked);
+                    updateChart();
+                });
+            });
+        });
 
         async function generateAnalysis() {
             const pair = document.getElementById('currencyPair').value;
