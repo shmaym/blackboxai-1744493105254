@@ -151,13 +151,21 @@
     <script>
         let tvWidget = null;
 
-        function getSymbolPrefix(instrumentType) {
+        function getSymbolPrefix(instrumentType, symbol) {
             switch(instrumentType) {
                 case 'forex': return 'FX:';
                 case 'crypto': return 'BINANCE:';
                 case 'stocks': return 'NASDAQ:';
                 case 'commodities': 
-                    return ''; // TradingView automatically handles commodity symbols
+                    // Special handling for commodities
+                    if (symbol.startsWith('XAU') || symbol.startsWith('XAG')) {
+                        return 'TVC:';
+                    } else if (symbol.includes('WTI')) {
+                        return 'TVC:';
+                    } else if (symbol.includes('BRENT')) {
+                        return 'TVC:';
+                    }
+                    return '';
                 default: return 'FX:';
             }
         }
@@ -168,8 +176,10 @@
             }
 
             const instrumentType = document.getElementById('instrumentType').value;
-            const prefix = getSymbolPrefix(instrumentType);
+            const prefix = getSymbolPrefix(instrumentType, symbol);
             const symbolWithPrefix = prefix + symbol;
+            
+            console.log('Loading chart:', symbolWithPrefix); // Debug log
 
             tvWidget = new TradingView.widget({
                 "width": "100%",
